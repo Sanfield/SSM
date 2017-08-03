@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mybatis.dao.PrdMapper">
+
+<resultMap type="ProductInfo" id="rm1">
+	<id column="product_id" property="prdId"/>
+	<result column="name" property="prdName"/>
+	<result column="product_type_id" property="prdType"/>
+	<result column="description" property="desc"/>
+	<result column="price" property="price"/>
+</resultMap>
+
+<sql id="sql1">
+	<![CDATA[ SELECT p.product_id,p.NAME,p.product_type_id,p.DESCRIPTION,p.price FROM products p ]]>
+</sql>
+<select id="getAllPrd" resultMap="rm1">
+	<include refid="sql1"/>		
+	WHERE p.del_flag IS NULL OR p.del_flag=0
+</select>
+
+<insert id="addPrd" parameterType="ProductInfo" >
+	<selectKey keyProperty="prdId" order="BEFORE" resultType="int">
+		select prdid.nextval from dual
+	</selectKey>
+	INSERT INTO products(product_id,product_type_id,name,description,price,del_flag)
+		VALUES(#{prdId},#{prdType,jdbcType=INTEGER},#{prdName},#{desc,jdbcType=VARCHAR},#{price,jdbcType=NUMERIC},0)
+</insert>
+
+<select id="search" parameterType="map" resultMap="rm1">
+	<include refid="sql1"/>
+	WHERE (p.del_flag IS NULL OR p.del_flag=0)
+	<if test="prdName!=null">and p.name like '%'#||{prdName}'%'</if>
+	<if test="typeId!=null">and p.product_type_id=#{typeId}</if>
+	<if test="lowPrice!=null">and p.price>=#{lowPrice}</if>
+	<if test="upPrice!=null"><![CDATA[and p.price<=#{upPrice}]]></if>
+</select>
+
+<update id="batchDelete" parameterType="_int[]">
+	UPDATE products SET del_flag=1
+	WHERE product_id IN
+	<foreach collection="array" open="(" separator="," close=")" item="id">
+		#{id}
+	</foreach>
+</update>
+
+</mapper>
