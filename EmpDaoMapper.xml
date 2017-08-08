@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.imn.dao.EmpDaoMapper">
+	<select id="findEmpWithPage" resultMap="empMapper">
+		SELECT a.*,b.* FROM product A
+		LEFT JOIN td_emp B
+		ON A.`did`=B.`did`
+	</select>
+	<resultMap type="com.imn.entity.Emp" id="empMapper">
+		<id property="empid" colum="empid" />
+		该标签描述的bean对象
+		<result propert="empName" column="empname" />
+		<association propert="product" javaType="com.imn.entity.ProductInfo">
+		<id property="did" column="did"/>
+		<result propert="dName" column="dname" />
+		<result propert="dDesc" column="dDesc" />
+		</association>
+	</resultMap>
+</mapper>
