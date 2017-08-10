@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+"-//Apache Software Foundation//DTD Struts Configuration 2.3//EN"
+"http://struts.apache.org/dtds/struts-2.3.dtd">
+<struts>
+<package name="mydefalt" extends="struts-default">
+	<interceptors>
+		<interceptor name="auth" class="com.strust.commom.AuthInterce"></interceptor>
+		<interceptor name="auth2" class="com.strust.commom.Auth2intercept">
+			<param name="excludeMethods">login,regist</param>
+		</interceptor>
+	<!-- 自定义拦截栈 -->
+		<interceptor-stack name="mystack">
+			<interceptor-ref name="auth2"></interceptor-ref>
+		<interceptor-ref name="fileUpload">
+			<param name="allowedExtensions">pdf,java,zip,jar,rar,txt,exe</param>
+			<param name="maxmunSize">10485760</param>
+		</interceptor-ref>
+			<interceptor-ref name="defaultStack"></interceptor-ref>
+		<!-- 	<interceptor-ref name="token"></interceptor-ref> -->
+		</interceptor-stack>
+	</interceptors>
+	<!-- 配置默认拦截器 -->
+	<default-interceptor-ref name="mystack"></default-interceptor-ref>
+	
+	<global-results>
+	
+		<result name="login">/index.jsp</result>
+	</global-results>
+
+</package>
+<package name="user" extends="mydefalt" namespace="/user">
+	<action name="login" class="com.strust.action.UserAction" method="login">
+		<result name="login_success">/main.jsp</result>
+		<result name="login">/index.jsp</result>
+		<result name="input">/index.jsp</result>
+			
+	</action>
+	<action name="regist" class="com.strust.action.UserAction" method="regist">
+		<result name="reg_success">/reg_success.jsp</result>
+		<result name="reg_false">/register.jsp</result>
+		<result name="input">/register.jsp</result>
+		<result name="invalid.token">/register.jsp</result>
+	</action>
+	<action name="preregist" class="com.strust.action.UserAction" method="preRegister">
+		<result>/register.jsp</result>
+	</action>
+</package>
+<package name="prd" extends="mydefalt" namespace="/prd">
+ <action name="list" class="com.strust.action.ProductAction" method="list">
+ 	<result>/prd/prd_list.jsp</result>
+ </action>
+</package>
+<package name="file" extends="mydefalt" namespace="/file">
+	<action name="upload" class="com.strust.action.FileAction" method="upload">
+	 <result>/file/upload.jsp</result>
+	 <result name="input">/file/upload.jsp</result>
+	</action>
+	<action name="list" class="com.strust.action.FileAction" method="list">
+	<result>/file/file_list.jsp</result>
+	</action>
+	<action name="download" class="com.strust.action.FileAction" method="download">
+	<result type="stream">
+		<param name="contentType">${contentType}</param>
+		<param name="contentLength">${contentLength}</param>
+		<param name="contentDisposition">${disposition}</param>
+	</result>
+	</action>
+  </package>
+  <package name="ajax" extends="struts-default" namespace="/ajax">
+  	<action name="getCstInfoById" class="com.strust.action.CustomerAction"
+  	 method="getcstById">
+  		
+  	</action>
+  </package>
+  <package name="ognl" extends="struts-default" namespace="/ognl">
+  	<action name="test" class="com.strust.action.OGNLDemo" 
+  	method="test">
+  		<result>/test_success.jsp</result>
+  	</action>
+  </package>
+</struts>
