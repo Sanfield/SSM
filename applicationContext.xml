@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/tx 
+        http://www.springframework.org/schema/tx/spring-tx.xsd 
+        http://www.springframework.org/schema/aop 
+        http://www.springframework.org/schema/aop/spring-aop.xsd">
+
+	<!-- 启用注解 -->
+	<context:annotation-config></context:annotation-config>
+	<!-- 数据源 -->
+	<bean id="ds" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close">
+		<property name="driverClassName" value="oracle.jdbc.OracleDriver"></property>
+		<property name="url" value="jdbc:oracle:thin:@192.168.1.31:1521:xe"></property>
+		<property name="username" value="store"></property>
+		<property name="password" value="store_password"></property>
+		<property name="maxIdle" value="10"></property>
+		<property name="maxActive" value="10"></property>
+		<property name="maxWait" value="4000"></property>
+		<property name="defaultAutoCommit" value="false"></property>
+	</bean>
+	<!-- sqlSessionFactory -->
+	<bean id="sqlSessionfactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="ds"></property>
+		<property name="typeAliasesPackage" value="com.ssm.ov"></property>
+		<property name="mapperLocations">
+			<array>
+				<value>classpath:com/ssm/dao/UserMapper.xml</value>
+			</array>
+		</property>
+	</bean>
+	<!-- 创建映射器接口实例 -->
+	<bean id="userMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
+		<property name="mapperInterface" value="com.ssm.dao.UserMapper"></property>
+		<property name="sqlSessionFactory" ref="sqlSessionfactory"></property>
+	</bean>
+	<!-- Service -->
+	<bean id="userService" class="com.ssm.service.impl.UserServiceImpl"></bean>
+	<!-- action -->
+	<bean id="userAction" class="com.ssm.action.UserAction" scope="prototype"></bean>
+	<!-- 事物管理器 -->
+	<bean id="txMgr"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="ds"></property>
+	</bean>
+	<!-- 事物增强 -->
+	<tx:advice transaction-manager="txMgr" id="txAdvice">
+		<tx:attributes>
+			<tx:method name="get*" read-only="true" />
+			<tx:method name="find*" read-only="true" />
+			<tx:method name="search*" read-only="true" />
+			<tx:method name="*" />
+		</tx:attributes>
+	</tx:advice>
+	<!-- 切入点 -->
+	<aop:config>
+		<aop:pointcut expression="execution(public * com.ssm.service.*.*(..))"
+			id="pc1" />
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="pc1" />
+	</aop:config>
+</beans>
