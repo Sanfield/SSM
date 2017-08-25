@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC 
+"-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xasxt.ticket.dao.TicketMapper">
+
+	<resultMap type="TripStationFeeInfo" id="rm1">
+		<id column="trip_id" property="tripId" />
+		<result column="c" property="saledTicket" />
+	</resultMap>
+
+	<resultMap type="TripTicketInfo" id="rm2">
+		<id column="trip_id" property="tripId" />
+		<result column="leave_time" property="leaveTime" />
+		<result column="saled_ticket" property="saledTicket" />
+		<result column="reserved_ticket" property="reservedTicket" />
+		<association property="routeInfo" javaType="RouteInfo">
+			<id column="route_id" property="routeId" />
+			<result column="route_name" property="routeName" />
+		</association>
+		<association property="vehicleInfo" javaType="VehicleInfo">
+			<id column="vehicle_id" property="vehicleId" />
+			<result column="vehicle_num" property="vehicleNum" />
+			<result column="max_carry" property="maxCarry" />
+		</association>
+	</resultMap>
+
+	<select id="getSaledTicketByTrip" parameterType="list"
+		resultMap="rm1">
+		SELECT t.trip_id,COUNT(t.seat_number) c
+		FROM ticket_info t
+		WHERE
+		t.trip_id IN
+		<foreach collection="list" open="(" close=")" separator=","
+			item="tripId">
+			#{tripId}
+		</foreach>
+		GROUP BY t.trip_id
+	</select>
+
+	<select id="getNewSeatNum" parameterType="map" resultType="_int">
+		select nvl(MAX(ti.seat_number)+1,1)
+		FROM ticket_info ti
+		WHERE
+		ti.trip_id=#{tripId}
+	</select>
+
+	<select id="getMaxSeatNum" resultType="_int" parameterType="string">
+		SELECT v.max_carry
+		FROM trip_info t INNER JOIN vehicle_info v ON
+		t.vehicle_id=v.vehicle_id
+		WHERE t.trip_id=#{tripId}
+	</select>
+
+	<select id="getRealPrice" parameterType="map" resultType="float">
+		SELECT
+		nvl(
+		(SELECT r.price+nvl((s.distance*(SELECT si.surcharge FROM
+		surcharge_info si)),0)+
+		nvl((SELECT si.service_fee FROM surcharge_info
+		si),0)
+		FROM trip_info t INNER JOIN route_info r ON
+		t.route_id=r.route_id
+		INNER
+		JOIN station_info s ON
+		r.terminal_station=s.station_id
+		WHERE
+		t.trip_id=#{tripId} AND
+		trim(r.terminal_station)=#{stationId})
+		,
+		(SELECT
+		b.price+nvl((s.distance*(SELECT si.surcharge FROM
+		surcharge_info
+		si)),0)+
+		nvl((SELECT si.service_fee FROM surcharge_info
+		si),0)
+		FROM
+		trip_info t INNER JOIN by_way_info b ON t.route_id=b.route_id
+		INNER
+		JOIN station_info s ON b.station_id=s.station_id
+		WHERE
+		t.trip_id=#{tripId} AND b.station_id=#{stationId})) real_price
+		FROM
+		dual
+	</select>
+
+	<insert id="printTicket" parameterType="map">
+		<selectKey keyProperty="ticketId" order="BEFORE" resultType="int">
+			select seq_ticket_id.nextval from dual
+		</selectKey>
+		INSERT INTO
+		ticket_info(ticket_id,trip_id,seat_number,reserved,sell_date,emp_id,reserve_date,
+		passenger_id,half_fare,real_price)
+		VALUES(#{ticketId},
+		#{tripId},
+		#{seatNum},
+		#{reserved},
+		#{sellDate},
+		#{empId},
+		#{reserveDate,jdbcType=DATE},
+		#{passengerId,jdbcType=INTEGER},
+		#{halfFare},
+		#{realPrice})
+	</insert>
+
+
+	<select id="getDailyTicketInfo" parameterType="map" resultMap="rm2">
+		SELECT
+		tr2.trip_id,tr2.leave_time,tr2.route_id,r.route_name,v.vehicle_id,v.vehicle_num,v.max_carry,
+		nvl(temp.saled_ticket,0) saled_ticket,
+		nvl(temp.reserved_ticket,0)
+		reserved_ticket
+		FROM (
+			SELECT ti.trip_id,COUNT(CASE WHEN sell_date IS
+					NOT NULL THEN 1	ELSE NULL	END) saled_ticket,
+				COUNT(CASE WHEN reserve_Date IS NOT NULL AND sell_date IS NULL AND
+				((tr1.leave_time-SYSDATE)*24*60)>60 THEN 1	ELSE NULL END)
+				reserved_ticket
+			FROM ticket_info ti INNER JOIN trip_info tr1 ON	ti.trip_id=tr1.trip_id
+		    GROUP BY ti.trip_id) temp
+		RIGHT OUTER JOIN trip_info tr2	ON	temp.trip_id=tr2.trip_id
+		INNER JOIN route_info r	ON	tr2.route_id=r.route_id
+		INNER JOIN vehicle_info v ON	tr2.vehicle_id=v.vehicle_id
+		<![CDATA[
+      			WHERE tr2.leave_time>=#{startDate} AND tr2.leave_time<#{endDate}]]>
+		<if test="routeId!=null"> AND tr2.route_id=#{routeId} </if>
+	</select>
+</mapper>
